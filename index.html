@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My GitHub Pages Projects</title>
+  <title>My GitHub Projects</title>
   <style>
     * {
       box-sizing: border-box;
@@ -29,6 +29,18 @@
       margin-bottom: 20px;
       padding-bottom: 10px;
       border-bottom: 2px solid #0366d6;
+    }
+    
+    h2 {
+      color: #24292e;
+      font-size: 20px;
+      margin: 30px 0 15px 0;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #e1e4e8;
+    }
+    
+    h2:first-of-type {
+      margin-top: 0;
     }
     
     .projects-grid {
@@ -124,6 +136,16 @@
       font-weight: 500;
     }
     
+    .language-badge {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #f1f8ff;
+      color: #0366d6;
+      border-radius: 12px;
+      font-size: 11px;
+      margin-right: 8px;
+    }
+    
     .loading, .error, .empty {
       text-align: center;
       padding: 40px;
@@ -133,27 +155,43 @@
     .error {
       color: #cb2431;
     }
+    
+    .section {
+      margin-bottom: 40px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>My GitHub Pages Projects</h1>
-    <div id="projects" class="projects-grid">
-      <p class="loading">Loading projects...</p>
+    <h1>My GitHub Projects</h1>
+    
+    <div class="section">
+      <h2>🌐 Live Web Apps</h2>
+      <div id="pages-projects" class="projects-grid">
+        <p class="loading">Loading...</p>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h2>📁 Public Repositories</h2>
+      <div id="repo-projects" class="projects-grid">
+        <p class="loading">Loading...</p>
+      </div>
     </div>
   </div>
 
   <script>
     (function() {
       // ============================================
-      // CONFIGURATION - Update these values
+      // CONFIGURATION
       // ============================================
       var GITHUB_USERNAME = 'jeremyeorr';
       var SHOW_PREVIEWS = true;
-      var EXCLUDE_REPOS = ['jeremyeorr', 'portfolio-widget']; // Repos to skip
+      var EXCLUDE_REPOS = ['jeremyeorr', 'portfolio-widget']; // Repos to skip entirely
       // ============================================
 
-      var container = document.getElementById('projects');
+      var pagesContainer = document.getElementById('pages-projects');
+      var reposContainer = document.getElementById('repo-projects');
 
       fetch('https://api.github.com/users/' + GITHUB_USERNAME + '/repos?per_page=100&sort=updated&direction=desc')
         .then(function(response) {
@@ -163,81 +201,130 @@
           return response.json();
         })
         .then(function(repos) {
-          // Filter for repos with GitHub Pages enabled, exclude specified repos
-          var pagesRepos = repos.filter(function(repo) {
-            return repo.has_pages && 
-                   !repo.fork && 
-                   EXCLUDE_REPOS.indexOf(repo.name) === -1;
+          // Filter out excluded repos and forks
+          var filteredRepos = repos.filter(function(repo) {
+            return !repo.fork && EXCLUDE_REPOS.indexOf(repo.name) === -1;
           });
 
-          // Already sorted by updated_at from API (sort=updated&direction=desc)
+          // Separate into Pages and non-Pages repos
+          var pagesRepos = filteredRepos.filter(function(repo) {
+            return repo.has_pages;
+          });
 
+          var otherRepos = filteredRepos.filter(function(repo) {
+            return !repo.has_pages;
+          });
+
+          // Render Pages section
           if (pagesRepos.length === 0) {
-            container.innerHTML = '<p class="empty">No GitHub Pages projects found.</p>';
-            return;
+            pagesContainer.innerHTML = '<p class="empty">No live web apps yet.</p>';
+          } else {
+            pagesContainer.innerHTML = '';
+            pagesRepos.forEach(function(repo) {
+              pagesContainer.appendChild(createPagesCard(repo));
+            });
           }
 
-          container.innerHTML = '';
-
-          pagesRepos.forEach(function(repo) {
-            // Determine the GitHub Pages URL
-            var pagesUrl;
-            if (repo.name === GITHUB_USERNAME + '.github.io') {
-              pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io';
-            } else {
-              pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io/' + repo.name;
-            }
-
-            // Format the date
-            var updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
+          // Render Repos section
+          if (otherRepos.length === 0) {
+            reposContainer.innerHTML = '<p class="empty">No additional repositories.</p>';
+          } else {
+            reposContainer.innerHTML = '';
+            otherRepos.forEach(function(repo) {
+              reposContainer.appendChild(createRepoCard(repo));
             });
-
-            // Format repo name for display
-            var displayName = repo.name
-              .replace(/-/g, ' ')
-              .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
-
-            var description = repo.description || 'No description available';
-
-            // Build preview HTML
-            var previewHtml = '';
-            if (SHOW_PREVIEWS) {
-              previewHtml = 
-                '<div class="project-preview">' +
-                  '<iframe src="' + pagesUrl + '" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>' +
-                  '<div class="project-preview-overlay" onclick="window.open(\'' + pagesUrl + '\', \'_blank\')"></div>' +
-                '</div>';
-            }
-
-            // Create card
-            var card = document.createElement('div');
-            card.className = 'project-card';
-            card.innerHTML = 
-              previewHtml +
-              '<div class="project-content">' +
-                '<h3 class="project-title">' +
-                  '<a href="' + pagesUrl + '" target="_blank">' + displayName + '</a>' +
-                '</h3>' +
-                '<p class="project-description">' + description + '</p>' +
-                '<div class="project-meta">' +
-                  '<span>Updated: ' + updatedDate + '</span>' +
-                  '<div class="project-links">' +
-                    '<a href="' + repo.html_url + '" target="_blank" title="View source code">📁 Source</a>' +
-                    '<a href="' + pagesUrl + '" target="_blank" class="primary">🔗 Visit</a>' +
-                  '</div>' +
-                '</div>' +
-              '</div>';
-
-            container.appendChild(card);
-          });
+          }
         })
         .catch(function(error) {
           console.error('Error:', error);
-          container.innerHTML = '<p class="error">Unable to load projects.<br><small>' + error.message + '</small></p>';
+          pagesContainer.innerHTML = '<p class="error">Unable to load.<br><small>' + error.message + '</small></p>';
+          reposContainer.innerHTML = '<p class="error">Unable to load.<br><small>' + error.message + '</small></p>';
         });
+
+      function createPagesCard(repo) {
+        var pagesUrl;
+        if (repo.name === GITHUB_USERNAME + '.github.io') {
+          pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io';
+        } else {
+          pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io/' + repo.name;
+        }
+
+        var updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+
+        var displayName = repo.name
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+
+        var description = repo.description || 'No description available';
+
+        var previewHtml = '';
+        if (SHOW_PREVIEWS) {
+          previewHtml = 
+            '<div class="project-preview">' +
+              '<iframe src="' + pagesUrl + '" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>' +
+              '<div class="project-preview-overlay" onclick="window.open(\'' + pagesUrl + '\', \'_blank\')"></div>' +
+            '</div>';
+        }
+
+        var card = document.createElement('div');
+        card.className = 'project-card';
+        card.innerHTML = 
+          previewHtml +
+          '<div class="project-content">' +
+            '<h3 class="project-title">' +
+              '<a href="' + pagesUrl + '" target="_blank">' + displayName + '</a>' +
+            '</h3>' +
+            '<p class="project-description">' + description + '</p>' +
+            '<div class="project-meta">' +
+              '<span>Updated: ' + updatedDate + '</span>' +
+              '<div class="project-links">' +
+                '<a href="' + repo.html_url + '" target="_blank" title="View source code">📁 Source</a>' +
+                '<a href="' + pagesUrl + '" target="_blank" class="primary">🔗 Visit</a>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+
+        return card;
+      }
+
+      function createRepoCard(repo) {
+        var updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+
+        var displayName = repo.name
+          .replace(/-/g, ' ')
+          .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+
+        var description = repo.description || 'No description available';
+        var language = repo.language || '';
+
+        var languageHtml = language ? '<span class="language-badge">' + language + '</span>' : '';
+
+        var card = document.createElement('div');
+        card.className = 'project-card';
+        card.innerHTML = 
+          '<div class="project-content">' +
+            '<h3 class="project-title">' +
+              '<a href="' + repo.html_url + '" target="_blank">' + displayName + '</a>' +
+            '</h3>' +
+            '<p class="project-description">' + description + '</p>' +
+            '<div class="project-meta">' +
+              '<span>' + languageHtml + 'Updated: ' + updatedDate + '</span>' +
+              '<div class="project-links">' +
+                '<a href="' + repo.html_url + '" target="_blank" class="primary">📁 View Repo</a>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+
+        return card;
+      }
     })();
   </script>
 </body>
