@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My GitHub Pages Projects</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f6f8fa;
+      padding: 20px;
+      line-height: 1.5;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #24292e;
+      font-size: 24px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #0366d6;
+    }
+    
+    .projects-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+    }
+    
+    .project-card {
+      background: #ffffff;
+      border: 1px solid #e1e4e8;
+      border-radius: 8px;
+      overflow: hidden;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    
+    .project-card:hover {
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      transform: translateY(-2px);
+    }
+    
+    .project-preview {
+      position: relative;
+      height: 180px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      overflow: hidden;
+    }
+    
+    .project-preview iframe {
+      width: 200%;
+      height: 360px;
+      transform: scale(0.5);
+      transform-origin: top left;
+      border: none;
+      pointer-events: none;
+      background: white;
+    }
+    
+    .project-preview-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      cursor: pointer;
+    }
+    
+    .project-content {
+      padding: 16px;
+    }
+    
+    .project-title {
+      font-size: 18px;
+      margin-bottom: 8px;
+    }
+    
+    .project-title a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+    
+    .project-title a:hover {
+      text-decoration: underline;
+    }
+    
+    .project-description {
+      color: #586069;
+      font-size: 14px;
+      margin-bottom: 12px;
+      min-height: 40px;
+    }
+    
+    .project-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 12px;
+      color: #586069;
+    }
+    
+    .project-links a {
+      color: #586069;
+      text-decoration: none;
+      margin-left: 12px;
+    }
+    
+    .project-links a:hover {
+      color: #0366d6;
+    }
+    
+    .project-links a.primary {
+      color: #0366d6;
+      font-weight: 500;
+    }
+    
+    .loading, .error, .empty {
+      text-align: center;
+      padding: 40px;
+      color: #586069;
+    }
+    
+    .error {
+      color: #cb2431;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>My GitHub Pages Projects</h1>
+    <div id="projects" class="projects-grid">
+      <p class="loading">Loading projects...</p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // ============================================
+      // CONFIGURATION - Update these values
+      // ============================================
+      var GITHUB_USERNAME = 'jeremyeorr';
+      var SHOW_PREVIEWS = true;
+      var EXCLUDE_REPOS = ['jeremyeorr']; // Repos to skip (e.g., profile repo)
+      // ============================================
+
+      var container = document.getElementById('projects');
+
+      fetch('https://api.github.com/users/' + GITHUB_USERNAME + '/repos?per_page=100&sort=updated&direction=desc')
+        .then(function(response) {
+          if (!response.ok) {
+            throw new Error('GitHub API error: ' + response.status);
+          }
+          return response.json();
+        })
+        .then(function(repos) {
+          // Filter for repos with GitHub Pages enabled, exclude specified repos
+          var pagesRepos = repos.filter(function(repo) {
+            return repo.has_pages && 
+                   !repo.fork && 
+                   EXCLUDE_REPOS.indexOf(repo.name) === -1;
+          });
+
+          // Already sorted by updated_at from API (sort=updated&direction=desc)
+
+          if (pagesRepos.length === 0) {
+            container.innerHTML = '<p class="empty">No GitHub Pages projects found.</p>';
+            return;
+          }
+
+          container.innerHTML = '';
+
+          pagesRepos.forEach(function(repo) {
+            // Determine the GitHub Pages URL
+            var pagesUrl;
+            if (repo.name === GITHUB_USERNAME + '.github.io') {
+              pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io';
+            } else {
+              pagesUrl = 'https://' + GITHUB_USERNAME + '.github.io/' + repo.name;
+            }
+
+            // Format the date
+            var updatedDate = new Date(repo.updated_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric'
+            });
+
+            // Format repo name for display
+            var displayName = repo.name
+              .replace(/-/g, ' ')
+              .replace(/\b\w/g, function(l) { return l.toUpperCase(); });
+
+            var description = repo.description || 'No description available';
+
+            // Build preview HTML
+            var previewHtml = '';
+            if (SHOW_PREVIEWS) {
+              previewHtml = 
+                '<div class="project-preview">' +
+                  '<iframe src="' + pagesUrl + '" loading="lazy" sandbox="allow-scripts allow-same-origin"></iframe>' +
+                  '<div class="project-preview-overlay" onclick="window.open(\'' + pagesUrl + '\', \'_blank\')"></div>' +
+                '</div>';
+            }
+
+            // Create card
+            var card = document.createElement('div');
+            card.className = 'project-card';
+            card.innerHTML = 
+              previewHtml +
+              '<div class="project-content">' +
+                '<h3 class="project-title">' +
+                  '<a href="' + pagesUrl + '" target="_blank">' + displayName + '</a>' +
+                '</h3>' +
+                '<p class="project-description">' + description + '</p>' +
+                '<div class="project-meta">' +
+                  '<span>Updated: ' + updatedDate + '</span>' +
+                  '<div class="project-links">' +
+                    '<a href="' + repo.html_url + '" target="_blank" title="View source code">📁 Source</a>' +
+                    '<a href="' + pagesUrl + '" target="_blank" class="primary">🔗 Visit</a>' +
+                  '</div>' +
+                '</div>' +
+              '</div>';
+
+            container.appendChild(card);
+          });
+        })
+        .catch(function(error) {
+          console.error('Error:', error);
+          container.innerHTML = '<p class="error">Unable to load projects.<br><small>' + error.message + '</small></p>';
+        });
+    })();
+  </script>
+</body>
+</html>
